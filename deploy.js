@@ -1,22 +1,24 @@
+const Web3 = require("web3");
 const fs = require("fs");
-const {Web3} = require("web3");
 
 const web3 = new Web3("http://127.0.0.1:8545");
 
-const output = JSON.parse(fs.readFileSync("compiled.json", "utf8"));
-const abi = output.contracts["SimpleStorage.sol"]["SimpleStorage"].abi;
-const bytecode = output.contracts["SimpleStorage.sol"]["SimpleStorage"].evm.bytecode.object;
+(async () => {
+  const accounts = await web3.eth.getAccounts();
+  const deployer = accounts[0];
 
-async function deploy() {
-    const accounts = await web3.eth.getAccounts();
-    console.log("Deploying from account:", accounts[0]);
+  console.log("Deploying from:", deployer);
 
-    const contract = new web3.eth.Contract(abi);
+  const abi = JSON.parse(fs.readFileSync("abi.json"));
+  const bytecode = fs.readFileSync("bytecode.txt", "utf8");
 
-    const instance = await contract
-        .deploy({ data: "0x" + bytecode })
-        .send({ from: accounts[0], gas: 1500000 });
+  const contract = new web3.eth.Contract(abi);
 
-    console.log("Contract deployed at:", instance.options.address);
-}
-deploy();
+  const deployed = await contract
+    .deploy({ data: "0x" + bytecode })
+    .send({ from: deployer, gas: 1500000 });
+
+  console.log("✔ Contract deployed at:", deployed.options.address);
+
+  fs.writeFileSync("address.txt", deployed.options.address);
+})();
